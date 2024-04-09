@@ -7,28 +7,28 @@ int Set::Node::count_nodes = 0;
  * Implementation of the member functions             *
  ******************************************************/
 
-/*
- *  Default constructor :create an empty Set
- */
+ /*
+  *  Default constructor :create an empty Set
+  */
 int Set::get_count_nodes() {
-    return Set::Node::count_nodes;
+	return Set::Node::count_nodes;
 }
 
 /*
  *  Default constructor :create an empty Set
  */
-Set::Set() : counter{0} {
-    head = new Node();
-    tail = new Node();
-    head->next = tail;
-    tail->prev = head;
+Set::Set() : counter{ 0 } {
+	head = new Node();
+	tail = new Node();
+	head->next = tail;
+	tail->prev = head;
 }
 
 /*
  *  Conversion constructor: convert val into a singleton {val}
  */
 Set::Set(int val) : Set{} {  // create an empty list
-
+	insert_node(head, val);
 }
 
 /*
@@ -36,7 +36,11 @@ Set::Set(int val) : Set{} {  // create an empty list
  * Create a Set with all ints in sorted vector list_of_values
  */
 Set::Set(const std::vector<int>& list_of_values) : Set{} {  // create an empty list
-    // IMPLEMENT before Lab2 HA
+	Node* p = head;
+	for (int a : list_of_values) {
+		insert_node(p, a);
+		p = p->next;
+	}
 }
 
 /*
@@ -45,7 +49,13 @@ Set::Set(const std::vector<int>& list_of_values) : Set{} {  // create an empty l
  * Function does not modify Set S in any way
  */
 Set::Set(const Set& S) : Set{} {  // create an empty list
-    // IMPLEMENT before Lab2 HA
+	Node* p = S.head->next;
+	Node* p1 = head;
+	while (p != S.tail) {
+		insert_node(p1, p->value);
+		p = p->next;
+		p1 = p1->next;
+	}
 }
 
 /*
@@ -53,14 +63,18 @@ Set::Set(const Set& S) : Set{} {  // create an empty list
  * Remove all nodes from the list, except the dummy nodes
  */
 void Set::make_empty() {
-    // IMPLEMENT before Lab2 HA
+	while (head->next != tail) {
+		remove_node(head->next);
+	}
 }
 
 /*
  * Destructor: deallocate all memory (Nodes) allocated for the list
  */
 Set::~Set() {
-    // IMPLEMENT before Lab2 HA
+	make_empty();
+	delete(head);
+	delete(tail);
 }
 
 /*
@@ -69,8 +83,17 @@ Set::~Set() {
  * Call by valued is used
  */
 Set& Set::operator=(Set S) {
-    // IMPLEMENT before Lab2 HA
-    return *this;
+	make_empty();
+
+	Node* p = S.head->next;
+	Node* p1 = head;
+	while (p != S.tail) {
+		insert_node(p1, p->value);
+		p = p->next;
+		p1 = p1->next;
+	}
+
+	return *this;
 }
 
 /*
@@ -79,8 +102,15 @@ Set& Set::operator=(Set S) {
  * This function does not modify the Set in any way
  */
 bool Set::is_member(int val) const {
-    // IMPLEMENT before Lab2 HA
-    return false;  // remove this line
+	Node* p = head->next;
+	while (p != tail) {
+		if (p->value == val) {
+			return true;
+		}
+		p = p->next;
+	}
+
+	return false;
 }
 
 /*
@@ -89,8 +119,7 @@ bool Set::is_member(int val) const {
  * Return false, otherwise
  */
 bool Set::operator==(const Set& S) const {
-    // IMPLEMENT before Lab2 HA
-    return false;  // remove this line
+	return operator<=>(S) == std::partial_ordering::equivalent;
 }
 
 /*
@@ -101,8 +130,40 @@ bool Set::operator==(const Set& S) const {
  * Return std::partial_ordering::unordered, otherwise
  */
 std::partial_ordering Set::operator<=>(const Set& S) const {
-    // IMPLEMENT before Lab2 HA
-    return std::partial_ordering::unordered; // remove this line
+
+	Node* p = S.head->next;
+	Node* p1 = head->next;
+	bool Sunique = false;
+	bool thisunique = false;
+
+	while (p != S.tail && p1 != tail) {
+		if (p->value == p1->value) {
+			p = p->next;
+			p1 = p1->next;
+		}
+
+		else if (p->value < p1->value) {
+			Sunique = true;
+			p = p->next;
+		}
+
+		else if (p1->value < p->value) {
+			thisunique = true;
+			p1 = p1->next;
+		}
+	}
+
+	if (p != S.tail) {
+		Sunique = true;
+	}
+	if (p1 != tail) {
+		thisunique = true;
+	}
+
+	if (thisunique && Sunique) return std::partial_ordering::unordered;
+	else if (thisunique) return std::partial_ordering::greater;
+	else if (Sunique) return std::partial_ordering::less;
+	return std::partial_ordering::equivalent;
 }
 
 /*
@@ -110,8 +171,32 @@ std::partial_ordering Set::operator<=>(const Set& S) const {
  * Set *this is modified and then returned
  */
 Set& Set::operator+=(const Set& S) {
-    // IMPLEMENT
-    return *this;
+	Node* p = S.head->next;
+	Node* p1 = head->next;
+
+	while(p != S.tail && p1 != tail) {
+
+		if (p->value < p1->value) {
+			insert_node(p1->prev, p->value);
+			p = p->next;
+		}
+
+		else if(p->value > p1->value) {
+			p1 = p1->next;
+		}
+
+		else { //equivalent
+			p = p->next;
+			p1 = p1->next;
+		}
+	}
+
+	while (p != S.tail) {
+		insert_node(p1->prev, p->value);
+		p = p->next; 
+	}
+	
+	return *this;
 }
 
 /*
@@ -119,8 +204,22 @@ Set& Set::operator+=(const Set& S) {
  * Set *this is modified and then returned
  */
 Set& Set::operator*=(const Set& S) {
-    // IMPLEMENT
-    return *this;
+	//Node* p = S.head->next;
+	//Node* p1 = head->next;
+
+	//while (p != tail && p1 != tail) {
+
+	//	if (p->value > p1->value) {
+
+	//	}
+
+	//	if (p->value == p1->value) {
+
+	//	}
+
+	//}
+
+	return *this;
 }
 
 /*
@@ -128,8 +227,11 @@ Set& Set::operator*=(const Set& S) {
  * Set *this is modified and then returned
  */
 Set& Set::operator-=(const Set& S) {
-    // IMPLEMENT
-    return *this;
+	
+
+
+
+	return *this;
 }
 
 
@@ -137,14 +239,15 @@ Set& Set::operator-=(const Set& S) {
  * Private Member Functions -- Implementation   *
  * ******************************************** */
 
-/*
- * Insert a new Node storing val after the Node pointed by p
- * \param p pointer to a Node
- * \param val value to be inserted  after position p
- */
+ /*
+  * Insert a new Node storing val after the Node pointed by p
+  * \param p pointer to a Node
+  * \param val value to be inserted  after position p
+  */
 void Set::insert_node(Node* p, int val) {
-    Node* newNode = new Node(val, p->next, p);
-    p->next = p->next->prev = newNode;
+	Node* newNode = new Node(val, p->next, p);
+	p->next = p->next->prev = newNode;
+	++counter;
 }
 
 /*
@@ -152,25 +255,27 @@ void Set::insert_node(Node* p, int val) {
  * \param p pointer to a Node
  */
 void Set::remove_node(Node* p) {
-    p->prev->next = p->next;
-    p->next->prev = p->prev;
-    delete(p);
+	p->prev->next = p->next;
+	p->next->prev = p->prev;
+	delete(p);
+	--counter;
 }
 
 /*
  * Write Set *this to stream os
  */
 void Set::write_to_stream(std::ostream& os) const {
-    if (is_empty()) {
-        os << "Set is empty!";
-    } else {
-        Set::Node* ptr{head->next};
+	if (is_empty()) {
+		os << "Set is empty!";
+	}
+	else {
+		Set::Node* ptr{ head->next };
 
-        os << "{ ";
-        while (ptr != tail) {
-            os << ptr->value << " ";
-            ptr = ptr->next;
-        }
-        os << "}";
-    }
+		os << "{ ";
+		while (ptr != tail) {
+			os << ptr->value << " ";
+			ptr = ptr->next;
+		}
+		os << "}";
+	}
 }
